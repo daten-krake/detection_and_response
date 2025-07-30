@@ -1,30 +1,27 @@
 // Correlate USB policy triggers with file creations on removable storage
 let PolicyEventsDrive = 
     DeviceEvents
-    | where ActionType contains "RemovableStorage"
+    | where ActionType == "RemovableStoragePolicyTriggered"
     | where FolderPath !has "N/A"
-    | extend action = todynamic(AdditionalFields).RemovableStorageAccess
-    | where action contains "write" 
     | extend drive = split(FolderPath, '\\')
     | extend  DriveName = tostring(drive[0])
     | summarize by DriveName;
 let PolicyEvents = 
     DeviceEvents
-    | where ActionType contains "RemovableStorage"
+    | where ActionType == "RemovableStoragePolicyTriggered"
     | where FolderPath !has "N/A"
     | extend action = todynamic(AdditionalFields).RemovableStorageAccess
     | where action contains "write" 
     | extend User = tostring(parse_json(AdditionalFields).AccountName)
-    | extend drive = split(FolderPath, '\\')
-    | extend  PolicyAction = tostring(parse_json(AdditionalFields).RemovableStoragePolicyVerdict)
-    | extend  DriveName = tostring(drive[0]);
+    | extend  PolicyAction = tostring(parse_json(AdditionalFields).RemovableStoragePolicyVerdict);
 let FileEvents = 
     DeviceFileEvents
     | where ActionType == "FileCreated"
     | extend drive = split(FolderPath, '\\')
     | extend DriveName = tostring(drive[0])
     | where DriveName in (PolicyEventsDrive)
-    | project 
+    | project
+    Timestamp, 
         DeviceId,
         DriveName,
         FileName,
@@ -34,4 +31,4 @@ let FileEvents =
 PolicyEvents
 | join FileEvents on DeviceId
 | where DriveName == DriveName // Match same volume
-| project Timestamp, DeviceId, ActionType, FolderPath1, DeviceName, FileAccount, SourcePath
+| project Timestamp, DeviceId, ActionType, WrittenTo=FolderPath1, DeviceName, FileAccount, WrittenFrom=SourcePath, File=FileName1
