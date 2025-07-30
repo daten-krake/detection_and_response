@@ -1,12 +1,12 @@
 // Correlate USB policy triggers with file creations on removable storage
-let PolicyEventsDrive = 
+let PolicyEventsDrive = //Creates target Drive
     DeviceEvents
     | where ActionType == "RemovableStoragePolicyTriggered"
     | where FolderPath !has "N/A"
     | extend drive = split(FolderPath, '\\')
     | extend  DriveName = tostring(drive[0])
     | summarize by DriveName;
-let PolicyEvents = 
+let PolicyEvents = // Checks for write events to external Storage
     DeviceEvents
     | where ActionType == "RemovableStoragePolicyTriggered"
     | where FolderPath !has "N/A"
@@ -15,7 +15,7 @@ let PolicyEvents =
     | extend User = tostring(parse_json(AdditionalFields).AccountName)
     | extend  PolicyAction = tostring(parse_json(AdditionalFields).RemovableStoragePolicyVerdict);
 let FileEvents = 
-    DeviceFileEvents
+    DeviceFileEvents // Used for file Creation Events to see File  Details
     | where ActionType == "FileCreated"
     | extend drive = split(FolderPath, '\\')
     | extend DriveName = tostring(drive[0])
@@ -28,7 +28,6 @@ let FileEvents =
         FolderPath,
         FileAccount = InitiatingProcessAccountName,
         SourcePath = strcat(InitiatingProcessFolderPath, InitiatingProcessFileName);
-PolicyEvents
+PolicyEvents // Join everything togehter
 | join FileEvents on DeviceId
-| where DriveName == DriveName // Match same volume
 | project Timestamp, DeviceId, ActionType, WrittenTo=FolderPath1, DeviceName, FileAccount, WrittenFrom=SourcePath, File=FileName1
