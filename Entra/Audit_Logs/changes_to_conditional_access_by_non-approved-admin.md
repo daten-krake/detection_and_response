@@ -22,7 +22,7 @@ This detection strategy monitors Entra audit logs for any additions, deletions, 
     - TargetResources[0].displayName (name of the policy)
 ## Detection Query
 
-```
+```kql
 let approved_admins = dynamic(["approvedAdmin1@yourdomain.com", "approvedAdmin2@yourdomain.com"] );  // Replace with approved admin UPNs // or you can use a watchlist here aswell
 AuditLogs
 | where Category == "Policy"
